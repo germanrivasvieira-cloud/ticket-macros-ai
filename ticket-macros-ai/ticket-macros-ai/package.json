@@ -8,7 +8,7 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "@openai/openai": "latest",
+    "@openai": "latest",
     "dotenv": "latest",
     "express": "latest",
     "multer": "latest"
