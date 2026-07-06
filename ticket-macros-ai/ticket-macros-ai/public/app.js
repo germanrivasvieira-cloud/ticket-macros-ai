@@ -13,7 +13,9 @@ const uid = () => crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + 
 const state = {
   day: todayISO(),
   data: loadDay(todayISO()),
-  goals: loadGoals()
+  goals: loadGoals(),
+  profile: loadProfile(),
+  weights: loadWeights()
 };
 
 function storageKey(day) { return `ticket-macros:${day}`; }
@@ -28,6 +30,16 @@ function loadGoals() {
   catch { return defaultGoals; }
 }
 function saveGoals() { localStorage.setItem('ticket-macros:goals', JSON.stringify(state.goals)); }
+function loadProfile() {
+  try { return JSON.parse(localStorage.getItem('ticket-macros:profile') || 'null'); }
+  catch { return null; }
+}
+function saveProfile() { localStorage.setItem('ticket-macros:profile', JSON.stringify(state.profile)); }
+function loadWeights() {
+  try { return JSON.parse(localStorage.getItem('ticket-macros:weights') || '[]'); }
+  catch { return []; }
+}
+function saveWeights() { localStorage.setItem('ticket-macros:weights', JSON.stringify(state.weights)); }
 function round(n, decimals = 1) { return Number(n || 0).toFixed(decimals).replace('.0', ''); }
 
 function totals(items = Object.values(state.data).flat()) {
@@ -40,12 +52,73 @@ function totals(items = Object.values(state.data).flat()) {
   }, { kcal: 0, protein: 0, carbs: 0, fat: 0 });
 }
 
+function calcGoals(profile) {
+  const weight = Number(profile.weight || 0);
+  const height = Number(profile.height || 0);
+  const age = Number(profile.age || 30);
+  const activity = Number(profile.activity || 1.35);
+  const sex = profile.sex || 'male';
+  const bmr = sex === 'female'
+    ? 10 * weight + 6.25 * height - 5 * age - 161
+    : 10 * weight + 6.25 * height - 5 * age + 5;
+  const tdee = bmr * activity;
+  const adjustment = { lose: -400, maintain: 0, gain: 300 }[profile.objective] ?? 0;
+  const kcal = Math.max(1200, Math.round((tdee + adjustment) / 25) * 25);
+  const protein = Math.round(weight * (profile.objective === 'gain' ? 2.0 : 1.8));
+  const fat = Math.round(weight * 0.8);
+  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+  return { kcal, protein, carbs, fat };
+}
+
+function latestWeight() {
+  return state.weights.slice().sort((a, b) => b.date.localeCompare(a.date))[0] || null;
+}
+function daysBetween(a, b) { return Math.floor((new Date(b) - new Date(a)) / 86400000); }
+
+function maybeAskProfile() {
+  if (!state.profile) {
+    $('#profileDialog').showModal();
+    return;
+  }
+  maybeAskWeeklyWeight();
+}
+
+function maybeAskWeeklyWeight() {
+  const last = latestWeight();
+  const snooze = localStorage.getItem('ticket-macros:weight-snooze');
+  if (snooze === todayISO()) return;
+  if (!last || daysBetween(last.date, todayISO()) >= 7) {
+    $('#weightValue').value = state.profile?.weight || last?.weight || '';
+    $('#weightDialog').showModal();
+  }
+}
+
+function renderProfile() {
+  const profile = state.profile;
+  const last = latestWeight();
+  if (!profile) {
+    $('#profileSummary').textContent = 'Configura tus datos para calcular calorías.';
+    $('#progressSummary').textContent = 'Sin progreso todavía.';
+    return;
+  }
+  const objectiveText = { lose: 'perder grasa', maintain: 'mantener', gain: 'ganar músculo' }[profile.objective] || 'objetivo';
+  $('#profileSummary').textContent = `${profile.height}cm · ${profile.weight}kg inicial · ${objectiveText}`;
+  if (last) {
+    const diff = Number(last.weight) - Number(profile.weight);
+    const sign = diff > 0 ? '+' : '';
+    $('#progressSummary').textContent = `Último peso: ${round(last.weight)}kg (${sign}${round(diff)}kg desde el inicio)`;
+  } else {
+    $('#progressSummary').textContent = 'Aún no hay pesos semanales.';
+  }
+}
+
 function render() {
   $('#dayInput').value = state.day;
   $('#goalKcal').value = state.goals.kcal;
   $('#goalProtein').value = state.goals.protein;
   $('#goalCarbs').value = state.goals.carbs;
   $('#goalFat').value = state.goals.fat;
+  renderProfile();
 
   const total = totals();
   $('#totalKcal').textContent = `${Math.round(total.kcal)} kcal`;
@@ -185,6 +258,53 @@ function deleteEdit() {
   render();
 }
 
+function openProfile() {
+  const p = state.profile || {};
+  $('#profileHeight').value = p.height || '';
+  $('#profileWeight').value = p.weight || latestWeight()?.weight || '';
+  $('#profileAge').value = p.age || '';
+  $('#profileSex').value = p.sex || 'male';
+  $('#profileObjective').value = p.objective || 'lose';
+  $('#profileActivity').value = p.activity || '1.35';
+  $('#profileDialog').showModal();
+}
+
+function saveProfileForm() {
+  const profile = {
+    height: Number($('#profileHeight').value),
+    weight: Number($('#profileWeight').value),
+    age: Number($('#profileAge').value || 30),
+    sex: $('#profileSex').value,
+    objective: $('#profileObjective').value,
+    activity: Number($('#profileActivity').value)
+  };
+  if (!profile.height || !profile.weight) return;
+  state.profile = profile;
+  state.goals = calcGoals(profile);
+  if (!state.weights.length) state.weights.push({ date: todayISO(), weight: profile.weight });
+  saveProfile();
+  saveGoals();
+  saveWeights();
+  render();
+}
+
+function saveWeeklyWeight() {
+  const weight = Number($('#weightValue').value);
+  if (!weight) return;
+  const existing = state.weights.find(item => item.date === todayISO());
+  if (existing) existing.weight = weight;
+  else state.weights.push({ date: todayISO(), weight });
+  state.weights.sort((a, b) => a.date.localeCompare(b.date));
+  saveWeights();
+  if (state.profile) {
+    state.profile.weight = weight;
+    state.goals = calcGoals(state.profile);
+    saveProfile();
+    saveGoals();
+  }
+  render();
+}
+
 $('#prevDay').addEventListener('click', () => changeDay(-1));
 $('#nextDay').addEventListener('click', () => changeDay(1));
 $('#dayInput').addEventListener('change', event => {
@@ -204,5 +324,10 @@ $('#addTextBtn').addEventListener('click', addTextFood);
 $('#photoInput').addEventListener('change', event => addPhotoFood(event.target.files[0]));
 $('#saveFoodBtn').addEventListener('click', saveEdit);
 $('#deleteFoodBtn').addEventListener('click', deleteEdit);
+$('#editProfileBtn').addEventListener('click', openProfile);
+$('#saveProfileBtn').addEventListener('click', saveProfileForm);
+$('#saveWeightBtn').addEventListener('click', saveWeeklyWeight);
+$('#laterWeightBtn').addEventListener('click', () => localStorage.setItem('ticket-macros:weight-snooze', todayISO()));
 
 render();
+setTimeout(maybeAskProfile, 250);

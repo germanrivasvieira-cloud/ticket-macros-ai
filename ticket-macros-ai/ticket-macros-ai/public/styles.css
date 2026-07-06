@@ -113,3 +113,15 @@ button:active, .photo-btn:active { transform: translate(1px, 1px); box-shadow: 1
   .ticket { padding: 15px 14px 20px; }
   .summary strong { font-size: 19px; }
 }
+
+.profile .message { margin: 4px 0; }
+.mini-btn {
+  width: auto;
+  padding: 5px 8px;
+  font-size: 11px;
+  box-shadow: 1px 1px 0 rgba(58, 40, 26, .25);
+}
+#profileDialog, #weightDialog { border: 0; padding: 0; background: transparent; width: min(380px, calc(100% - 24px)); }
+#profileDialog::backdrop, #weightDialog::backdrop { background: rgba(58, 40, 26, .35); }
+.edit-card select { margin-top: 4px; }
+#profileDialog menu, #weightDialog menu { grid-template-columns: 1fr 1fr; }
