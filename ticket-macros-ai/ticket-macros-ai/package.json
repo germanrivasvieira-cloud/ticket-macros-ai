@@ -8,10 +8,9 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-   "openai": "latest",
-   "dotenv": "latest",
-   "express": "latest",
-   "multer": "latest"
-}
+    "openai": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "multer": "latest"
   }
 }
