@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ticket diario macros</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="phone-shell">
+    <section class="ticket">
+      <header class="ticket-head">
+        <div class="brand-line">MI TICKET DIARIO</div>
+        <h1>Calorías & macros</h1>
+        <div class="date-row">
+          <button id="prevDay" aria-label="Día anterior">‹</button>
+          <input id="dayInput" type="date" />
+          <button id="nextDay" aria-label="Día siguiente">›</button>
+        </div>
+      </header>
+
+      <section class="goals receipt-block">
+        <div class="row title-row"><span>OBJETIVO</span><span id="goalStatus">--%</span></div>
+        <div class="goal-grid">
+          <label>Kcal<input id="goalKcal" type="number" inputmode="numeric" /></label>
+          <label>Prot<input id="goalProtein" type="number" inputmode="decimal" /></label>
+          <label>Carbs<input id="goalCarbs" type="number" inputmode="decimal" /></label>
+          <label>Grasa<input id="goalFat" type="number" inputmode="decimal" /></label>
+        </div>
+      </section>
+
+      <section class="summary receipt-block">
+        <div class="row"><span>TOTAL</span><strong id="totalKcal">0 kcal</strong></div>
+        <div class="macro-row"><span id="totalProtein">P 0g</span><span id="totalCarbs">C 0g</span><span id="totalFat">G 0g</span></div>
+        <div class="bar"><i id="kcalBar"></i></div>
+      </section>
+
+      <section class="ai-box receipt-block">
+        <label class="small-label" for="mealSelect">COMIDA</label>
+        <select id="mealSelect">
+          <option value="breakfast">Desayuno</option>
+          <option value="lunch">Comida</option>
+          <option value="dinner">Cena</option>
+          <option value="snacks">Otros / snacks</option>
+        </select>
+
+        <label class="small-label" for="foodText">AÑADIR POR TEXTO</label>
+        <textarea id="foodText" rows="3" placeholder="50g copos de avena Mercadona"></textarea>
+        <button id="addTextBtn" class="main-btn">Analizar con IA</button>
+
+        <label class="photo-btn">
+          <input id="photoInput" type="file" accept="image/*" capture="environment" />
+          Añadir por foto
+        </label>
+        <p id="aiMessage" class="message"></p>
+      </section>
+
+      <div id="meals"></div>
+
+      <footer class="ticket-foot">
+        <span>guardado local por día</span>
+        <span>•••</span>
+      </footer>
+    </section>
+  </main>
+
+  <dialog id="editDialog">
+    <form method="dialog" class="edit-card">
+      <h2>Editar alimento</h2>
+      <input type="hidden" id="editMeal" />
+      <input type="hidden" id="editId" />
+      <label>Nombre<input id="editName" /></label>
+      <label>Marca<input id="editBrand" /></label>
+      <div class="edit-grid">
+        <label>Gramos<input id="editGrams" type="number" step="0.1" /></label>
+        <label>Kcal<input id="editKcal" type="number" step="1" /></label>
+        <label>Prot<input id="editProtein" type="number" step="0.1" /></label>
+        <label>Carbs<input id="editCarbs" type="number" step="0.1" /></label>
+        <label>Grasa<input id="editFat" type="number" step="0.1" /></label>
+      </div>
+      <menu>
+        <button id="deleteFoodBtn" value="delete" class="danger">Borrar</button>
+        <button value="cancel">Cancelar</button>
+        <button id="saveFoodBtn" value="save" class="main-btn">Guardar</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
